@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pace Note Translator & Printer</title>
+  <title>Pace Note Translator & Clipboard Export</title>
   <style>
     :root {
       --bg-color: #121216;
@@ -40,6 +40,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     h1 { font-size: 1.1rem; color: #fff; letter-spacing: 0.5px; }
@@ -48,7 +50,7 @@
       background: #252530;
       color: #fff;
       border: 1px solid var(--border-color);
-      padding: 6px 10px;
+      padding: 6px 12px;
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
@@ -56,7 +58,38 @@
       text-transform: uppercase;
     }
     .btn:hover { background: #323242; border-color: var(--accent-blue); }
-    .btn-primary { background: var(--accent-blue); color: #000; border: none; }
+    .btn-primary { background: var(--accent-green); color: #000; border: none; }
+    .btn-primary:hover { background: #00c853; }
+
+    .stage-input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #141418;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 8px;
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .stage-input-group label {
+      font-size: 0.7rem;
+      color: #aaa;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .stage-input-group input {
+      background: transparent;
+      border: none;
+      color: var(--accent-blue);
+      font-weight: bold;
+      font-size: 0.85rem;
+      width: 100%;
+      text-transform: uppercase;
+    }
+    .stage-input-group input:focus { outline: none; }
 
     .paste-section {
       display: flex;
@@ -208,23 +241,18 @@
       font-size: 0.75rem;
       flex: 1;
     }
-
-    @media print {
-      body { background: #fff; color: #000; padding: 0; }
-      header, .editor-sidebar { display: none !important; }
-      .workspace { display: block; }
-      .preview-container { padding: 0; box-shadow: none; border-radius: 0; background: #fff; }
-      .roadbook-page { border: none; padding: 0; page-break-after: always; }
-      @page { size: A4; margin: 12mm; }
-    }
   </style>
 </head>
 <body>
 
   <header>
     <div class="header-top">
-      <h1>Pace Note Translator & Printer</h1>
-      <button class="btn btn-primary" onclick="window.print()">Print Notes</button>
+      <h1>Pace Note Translator & Clipboard</h1>
+      <div class="stage-input-group">
+        <label for="stage-name-input">STAGE:</label>
+        <input type="text" id="stage-name-input" value="SS7 - GARTHENIOG" oninput="renderRoadbook()">
+      </div>
+      <button class="btn btn-primary" onclick="copyNotesToClipboard()">Copy Notes</button>
     </div>
     <div class="paste-section">
       <div style="font-size:0.7rem; color:#aaa; text-transform:uppercase;">Paste CSV Data Below:</div>
@@ -299,7 +327,6 @@
         if (current.type === 'STRAIGHT') {
           lastStraightDist = current.distVal;
         } else {
-          // Corner row takes the preceding straight distance
           parsedNotes.push({
             rawIndex: i,
             type: current.type,
@@ -309,7 +336,6 @@
             customExtra: current.customExtra
           });
 
-          // Reset after assigning
           lastStraightDist = 0;
         }
       }
@@ -369,6 +395,53 @@
       buildNotesFromRaw();
     }
 
+    function formatCallString(row) {
+      let baseCall = row.noteCall.replace(/\bLONG\b/g, 'LNG');
+
+      if (row.modifier) {
+        if (row.modifier === 'LNG' && !baseCall.includes('LNG')) {
+          baseCall += ' LNG';
+        } else if (row.modifier === 'OPENS') {
+          baseCall += ' / OPENS';
+        } else if (row.modifier === 'TIGHTENS') {
+          baseCall += ' / TIGHTENS';
+        } else if (row.modifier === 'BROW') {
+          baseCall += ' / BROW';
+        } else if (row.modifier === 'NARROW') {
+          baseCall += ' (N)';
+        } else if (row.modifier === 'CREST') {
+          baseCall += ' (C)';
+        }
+      }
+
+      if (row.customExtra) {
+        baseCall += ` / ${row.customExtra}`;
+      }
+      return baseCall;
+    }
+
+    function copyNotesToClipboard() {
+      if (parsedNotes.length === 0) {
+        alert("No notes loaded to copy!");
+        return;
+      }
+
+      const stageTitle = document.getElementById('stage-name-input').value.trim() || "STAGE 1";
+      let outputText = stageTitle + "\n";
+      
+      parsedNotes.forEach((row, idx) => {
+        let callStr = formatCallString(row);
+        let distStr = (idx === 0 && row.straightDist > 0) ? `${row.straightDist} ` : (row.straightDist > 0 ? `${row.straightDist} ` : "");
+        outputText += `${distStr}${callStr}\n`;
+      });
+
+      navigator.clipboard.writeText(outputText).then(() => {
+        alert(`Stage notes for "${stageTitle}" copied to clipboard!`);
+      }).catch(err => {
+        console.error("Failed to copy notes: ", err);
+      });
+    }
+
     function renderRoadbook() {
       const container = document.getElementById('preview-container');
       if (parsedNotes.length === 0) {
@@ -378,6 +451,7 @@
 
       container.innerHTML = '';
 
+      const stageTitle = document.getElementById('stage-name-input').value.trim() || "STAGE 1";
       const LINES_PER_PAGE = 7;
       let totalPages = Math.ceil(parsedNotes.length / LINES_PER_PAGE);
 
@@ -387,44 +461,20 @@
 
         let pageHtml = `
           <div class="page-header">
-            <span>STAGE: EPYNT SS1</span>
+            <span>STAGE: ${stageTitle}</span>
             <span>PAGE: ${p + 1}</span>
           </div>
         `;
 
         const pageNotes = parsedNotes.slice(p * LINES_PER_PAGE, (p + 1) * LINES_PER_PAGE);
 
-        // Render transition banner at the top of the page if there's a leading distance
         if (pageNotes[0] && pageNotes[0].straightDist > 0) {
           pageHtml += `<div class="top-page-banner">AFTER ${pageNotes[0].straightDist}m →</div>`;
         }
 
         pageNotes.forEach((row, rowIdx) => {
-          let baseCall = row.noteCall.replace(/\bLONG\b/g, 'LNG');
-
-          if (row.modifier) {
-            if (row.modifier === 'LNG' && !baseCall.includes('LNG')) {
-              baseCall += ' LNG';
-            } else if (row.modifier === 'OPENS') {
-              baseCall += ' / OPENS';
-            } else if (row.modifier === 'TIGHTENS') {
-              baseCall += ' / TIGHTENS';
-            } else if (row.modifier === 'BROW') {
-              baseCall += ' / BROW';
-            } else if (row.modifier === 'NARROW') {
-              baseCall += ' (N)';
-            } else if (row.modifier === 'CREST') {
-              baseCall += ' (C)';
-            }
-          }
-
-          if (row.customExtra) {
-            baseCall += ` / ${row.customExtra}`;
-          }
-
+          let baseCall = formatCallString(row);
           let formattedCall = baseCall.replace(/^([RL]\d+)/, '<u>$1</u>');
-          
-          // Display the straight distance on the row (omit top row's distance if shown in banner)
           const showDist = (rowIdx === 0 && row.straightDist > 0) ? '' : (row.straightDist > 0 ? row.straightDist : '');
 
           pageHtml += `
