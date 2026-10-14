@@ -10,6 +10,7 @@
       --panel-bg: #1e1e24;
       --accent-blue: #29b6f6;
       --accent-green: #00e676;
+      --accent-red: #ff5252;
       --text-color: #f0f0f0;
       --border-color: #333340;
       --font-mono: 'Courier New', Courier, monospace;
@@ -150,7 +151,7 @@
       font-weight: 900;
     }
 
-    /* Compact Sidebar Editor */
+    /* Sidebar Editor */
     .editor-sidebar {
       background: var(--panel-bg);
       border: 1px solid var(--border-color);
@@ -183,6 +184,17 @@
       font-weight: bold;
       font-size: 0.8rem;
     }
+
+    .btn-delete {
+      background: transparent;
+      color: var(--accent-red);
+      border: none;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .btn-delete:hover { color: #ff8a80; }
 
     .modifier-inputs {
       display: flex;
@@ -238,6 +250,7 @@
   </div>
 
   <script>
+    let rawCsvRows = [];
     let parsedNotes = [];
 
     function processInputCSV() {
@@ -245,13 +258,14 @@
       const lines = text.split('\n').filter(l => l.trim() !== '');
       
       if (lines.length === 0) {
+        rawCsvRows = [];
         parsedNotes = [];
         renderEditor();
         renderRoadbook();
         return;
       }
 
-      let rawRows = [];
+      rawCsvRows = [];
       let startIndex = 0;
       if (lines[0].toLowerCase().includes('index') || lines[0].toLowerCase().includes('type') || lines[0].toLowerCase().includes('note')) {
         startIndex = 1;
@@ -264,35 +278,48 @@
           let noteCall = cols[2] || '';
           let distVal = parseInt(noteCall) || parseInt(cols[3]) || 0;
 
-          rawRows.push({
+          rawCsvRows.push({
             type: type.toUpperCase(),
             noteCall: noteCall.toUpperCase(),
-            distVal: distVal
+            distVal: distVal,
+            modifier: '',
+            customExtra: ''
           });
         }
       }
 
+      buildNotesFromRaw();
+    }
+
+    function buildNotesFromRaw() {
       parsedNotes = [];
       let pendingStraight = 0;
 
-      for (let i = 0; i < rawRows.length; i++) {
-        const current = rawRows[i];
+      for (let i = 0; i < rawCsvRows.length; i++) {
+        const current = rawCsvRows[i];
 
         if (current.type === 'STRAIGHT') {
           pendingStraight = current.distVal;
         } else {
+          // Look ahead for the trailing straight distance
           let trailingStraight = 0;
-          if (i + 1 < rawRows.length && rawRows[i + 1].type === 'STRAIGHT') {
-            trailingStraight = rawRows[i + 1].distVal;
+          for (let j = i + 1; j < rawCsvRows.length; j++) {
+            if (rawCsvRows[j].type === 'STRAIGHT') {
+              trailingStraight = rawCsvRows[j].distVal;
+              break;
+            } else {
+              break; // Stop if another corner comes first
+            }
           }
 
           parsedNotes.push({
+            rawIndex: i,
             type: current.type,
             noteCall: current.noteCall,
             straightDist: trailingStraight,
             leadingBannerDist: pendingStraight,
-            modifier: '',
-            customExtra: ''
+            modifier: current.modifier,
+            customExtra: current.customExtra
           });
 
           pendingStraight = 0;
@@ -301,6 +328,11 @@
 
       renderEditor();
       renderRoadbook();
+    }
+
+    function deleteRow(rawIdx) {
+      rawCsvRows.splice(rawIdx, 1);
+      buildNotesFromRaw();
     }
 
     function renderEditor() {
@@ -317,10 +349,13 @@
         item.innerHTML = `
           <div class="editor-item-top">
             <span>#${idx + 1}: ${row.noteCall}</span>
-            <span style="font-weight:normal; color:#888; font-size:0.7rem;">Dist: ${row.straightDist ? row.straightDist + 'm' : '--'}</span>
+            <div>
+              <span style="font-weight:normal; color:#888; font-size:0.7rem; margin-right:8px;">Dist: ${row.straightDist ? row.straightDist + 'm' : '--'}</span>
+              <button class="btn-delete" title="Delete line" onclick="deleteRow(${row.rawIndex})">✕</button>
+            </div>
           </div>
           <div class="modifier-inputs">
-            <select onchange="updateModifier(${idx}, this.value)">
+            <select onchange="updateModifier(${row.rawIndex}, this.value)">
               <option value="">No Modifier</option>
               <option value="LNG" ${row.modifier === 'LNG' ? 'selected' : ''}>LNG</option>
               <option value="OPENS" ${row.modifier === 'OPENS' ? 'selected' : ''}>OPENS</option>
@@ -329,21 +364,21 @@
               <option value="NARROW" ${row.modifier === 'NARROW' ? 'selected' : ''}>(N)</option>
               <option value="CREST" ${row.modifier === 'CREST' ? 'selected' : ''}>(C)</option>
             </select>
-            <input type="text" placeholder="Extra..." value="${row.customExtra}" oninput="updateExtra(${idx}, this.value)">
+            <input type="text" placeholder="Extra..." value="${row.customExtra}" oninput="updateExtra(${row.rawIndex}, this.value)">
           </div>
         `;
         sidebar.appendChild(item);
       });
     }
 
-    function updateModifier(idx, val) {
-      parsedNotes[idx].modifier = val;
-      renderRoadbook();
+    function updateModifier(rawIdx, val) {
+      rawCsvRows[rawIdx].modifier = val;
+      buildNotesFromRaw();
     }
 
-    function updateExtra(idx, val) {
-      parsedNotes[idx].customExtra = val;
-      renderRoadbook();
+    function updateExtra(rawIdx, val) {
+      rawCsvRows[rawIdx].customExtra = val;
+      buildNotesFromRaw();
     }
 
     function renderRoadbook() {
@@ -355,7 +390,7 @@
 
       container.innerHTML = '';
 
-      const LINES_PER_PAGE = 7; // Increased slightly for compact layout
+      const LINES_PER_PAGE = 7;
       let totalPages = Math.ceil(parsedNotes.length / LINES_PER_PAGE);
 
       for (let p = 0; p < totalPages; p++) {
@@ -378,10 +413,8 @@
         }
 
         pageNotes.forEach((row) => {
-          // Normalize LONG to LNG compactly
           let baseCall = row.noteCall.replace(/\bLONG\b/g, 'LNG');
 
-          // Append modifier compactly
           if (row.modifier) {
             if (row.modifier === 'LNG' && !baseCall.includes('LNG')) {
               baseCall += ' LNG';
