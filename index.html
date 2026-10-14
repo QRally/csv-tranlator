@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pace Note Translator & Printer</title>
+  <style>
+    :root {
+      --bg-color: #121216;
+      --panel-bg: #1e1e24;
+      --accent-blue: #29b6f6;
+      --accent-green: #00e676;
+      --text-color: #f0f0f0;
+      --border-color: #333340;
+      --font-mono: 'Courier New', Courier, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 12px;
+    }
+
+    header {
+      background: var(--panel-bg);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 { font-size: 1.1rem; color: #fff; letter-spacing: 0.5px; }
+
+    .btn {
+      background: #252530;
+      color: #fff;
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+    .btn:hover { background: #323242; border-color: var(--accent-blue); }
+    .btn-primary { background: var(--accent-blue); color: #000; border: none; }
+
+    .paste-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 65px;
+      background: #141418;
+      color: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      resize: vertical;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 900px) {
+      .workspace { grid-template-columns: 1fr 360px; }
+    }
+
+    /* Compact Road Book Preview */
+    .preview-container {
+      background: #fff;
+      color: #000;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+      min-height: 450px;
+    }
+
+    .roadbook-page {
+      border: 2px solid #000;
+      padding: 10px;
+      background: #fff;
+      margin-bottom: 15px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      font-size: 0.8rem;
+      border-bottom: 2px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .top-page-banner {
+      background: #fff9c4;
+      border: 1px solid #fbc02d;
+      padding: 6px 10px;
+      text-align: right;
+      font-weight: bold;
+      font-style: italic;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+    }
+
+    .note-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 4px;
+      border-bottom: 1px solid #ccc;
+      font-family: var(--font-mono);
+    }
+
+    .note-call {
+      font-size: 1.15rem;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .note-call u {
+      text-underline-offset: 3px;
+      text-decoration-thickness: 2px;
+    }
+
+    .note-distance {
+      font-size: 1.35rem;
+      font-weight: 900;
+    }
+
+    /* Compact Sidebar Editor */
+    .editor-sidebar {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .editor-header { font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: bold; }
+
+    .editor-item {
+      background: #141418;
+      border: 1px solid var(--border-color);
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .editor-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-weight: bold;
+      font-size: 0.8rem;
+    }
+
+    .modifier-inputs {
+      display: flex;
+      gap: 4px;
+    }
+
+    select, input[type="text"] {
+      background: #252530;
+      color: #fff;
+      border: 1px solid var(--border-color);
+      padding: 4px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      flex: 1;
+    }
+
+    @media print {
+      body { background: #fff; color: #000; padding: 0; }
+      header, .editor-sidebar { display: none !important; }
+      .workspace { display: block; }
+      .preview-container { padding: 0; box-shadow: none; border-radius: 0; background: #fff; }
+      .roadbook-page { border: none; padding: 0; page-break-after: always; }
+      @page { size: A4; margin: 12mm; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <h1>Pace Note Translator & Printer</h1>
+      <button class="btn btn-primary" onclick="window.print()">Print Notes</button>
+    </div>
+    <div class="paste-section">
+      <div style="font-size:0.7rem; color:#aaa; text-transform:uppercase;">Paste CSV Data Below:</div>
+      <textarea id="csv-paste-box" placeholder="Paste CSV rows here..." oninput="processInputCSV()"></textarea>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <div class="preview-container" id="preview-container">
+      <div style="text-align:center; color:#666; padding:20px; font-family:sans-serif; font-size:0.85rem;">
+        Paste your recce CSV log above to generate formatted longhand notes.
+      </div>
+    </div>
+
+    <div class="editor-sidebar" id="editor-sidebar">
+      <div class="editor-header">Stage Line Editor & Modifiers</div>
+      <div id="editor-list" style="display:flex; flex-direction:column; gap:6px;">
+        <div style="color:#666; font-size:0.75rem; text-align:center; padding:10px;">No data loaded yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let parsedNotes = [];
+
+    function processInputCSV() {
+      const text = document.getElementById('csv-paste-box').value;
+      const lines = text.split('\n').filter(l => l.trim() !== '');
+      
+      if (lines.length === 0) {
+        parsedNotes = [];
+        renderEditor();
+        renderRoadbook();
+        return;
+      }
+
+      let rawRows = [];
+      let startIndex = 0;
+      if (lines[0].toLowerCase().includes('index') || lines[0].toLowerCase().includes('type') || lines[0].toLowerCase().includes('note')) {
+        startIndex = 1;
+      }
+
+      for (let i = startIndex; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length >= 3) {
+          let type = cols[1] || '';
+          let noteCall = cols[2] || '';
+          let distVal = parseInt(noteCall) || parseInt(cols[3]) || 0;
+
+          rawRows.push({
+            type: type.toUpperCase(),
+            noteCall: noteCall.toUpperCase(),
+            distVal: distVal
+          });
+        }
+      }
+
+      parsedNotes = [];
+      let pendingStraight = 0;
+
+      for (let i = 0; i < rawRows.length; i++) {
+        const current = rawRows[i];
+
+        if (current.type === 'STRAIGHT') {
+          pendingStraight = current.distVal;
+        } else {
+          let trailingStraight = 0;
+          if (i + 1 < rawRows.length && rawRows[i + 1].type === 'STRAIGHT') {
+            trailingStraight = rawRows[i + 1].distVal;
+          }
+
+          parsedNotes.push({
+            type: current.type,
+            noteCall: current.noteCall,
+            straightDist: trailingStraight,
+            leadingBannerDist: pendingStraight,
+            modifier: '',
+            customExtra: ''
+          });
+
+          pendingStraight = 0;
+        }
+      }
+
+      renderEditor();
+      renderRoadbook();
+    }
+
+    function renderEditor() {
+      const sidebar = document.getElementById('editor-list');
+      if (parsedNotes.length === 0) {
+        sidebar.innerHTML = `<div style="color:#666; font-size:0.75rem; text-align:center; padding:10px;">No data loaded yet.</div>`;
+        return;
+      }
+
+      sidebar.innerHTML = '';
+      parsedNotes.forEach((row, idx) => {
+        const item = document.createElement('div');
+        item.className = 'editor-item';
+        item.innerHTML = `
+          <div class="editor-item-top">
+            <span>#${idx + 1}: ${row.noteCall}</span>
+            <span style="font-weight:normal; color:#888; font-size:0.7rem;">Dist: ${row.straightDist ? row.straightDist + 'm' : '--'}</span>
+          </div>
+          <div class="modifier-inputs">
+            <select onchange="updateModifier(${idx}, this.value)">
+              <option value="">No Modifier</option>
+              <option value="LNG" ${row.modifier === 'LNG' ? 'selected' : ''}>LNG</option>
+              <option value="OPENS" ${row.modifier === 'OPENS' ? 'selected' : ''}>OPENS</option>
+              <option value="TIGHTENS" ${row.modifier === 'TIGHTENS' ? 'selected' : ''}>TIGHTENS</option>
+              <option value="BROW" ${row.modifier === 'BROW' ? 'selected' : ''}>BROW</option>
+              <option value="NARROW" ${row.modifier === 'NARROW' ? 'selected' : ''}>(N)</option>
+              <option value="CREST" ${row.modifier === 'CREST' ? 'selected' : ''}>(C)</option>
+            </select>
+            <input type="text" placeholder="Extra..." value="${row.customExtra}" oninput="updateExtra(${idx}, this.value)">
+          </div>
+        `;
+        sidebar.appendChild(item);
+      });
+    }
+
+    function updateModifier(idx, val) {
+      parsedNotes[idx].modifier = val;
+      renderRoadbook();
+    }
+
+    function updateExtra(idx, val) {
+      parsedNotes[idx].customExtra = val;
+      renderRoadbook();
+    }
+
+    function renderRoadbook() {
+      const container = document.getElementById('preview-container');
+      if (parsedNotes.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#666; padding:20px; font-size:0.85rem;">Paste your recce CSV log above to generate formatted longhand notes.</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      const LINES_PER_PAGE = 7; // Increased slightly for compact layout
+      let totalPages = Math.ceil(parsedNotes.length / LINES_PER_PAGE);
+
+      for (let p = 0; p < totalPages; p++) {
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'roadbook-page';
+
+        let pageHtml = `
+          <div class="page-header">
+            <span>STAGE: EPYNT SS1</span>
+            <span>PAGE: ${p + 1}</span>
+          </div>
+        `;
+
+        const pageNotes = parsedNotes.slice(p * LINES_PER_PAGE, (p + 1) * LINES_PER_PAGE);
+
+        if (pageNotes[0] && pageNotes[0].leadingBannerDist > 0) {
+          pageHtml += `<div class="top-page-banner">AFTER ${pageNotes[0].leadingBannerDist}m →</div>`;
+        } else if (p > 0 && pageNotes[0] && pageNotes[0].straightDist > 0) {
+          pageHtml += `<div class="top-page-banner">AFTER ${pageNotes[0].straightDist}m →</div>`;
+        }
+
+        pageNotes.forEach((row) => {
+          // Normalize LONG to LNG compactly
+          let baseCall = row.noteCall.replace(/\bLONG\b/g, 'LNG');
+
+          // Append modifier compactly
+          if (row.modifier) {
+            if (row.modifier === 'LNG' && !baseCall.includes('LNG')) {
+              baseCall += ' LNG';
+            } else if (row.modifier === 'OPENS') {
+              baseCall += ' / OPENS';
+            } else if (row.modifier === 'TIGHTENS') {
+              baseCall += ' / TIGHTENS';
+            } else if (row.modifier === 'BROW') {
+              baseCall += ' / BROW';
+            } else if (row.modifier === 'NARROW') {
+              baseCall += ' (N)';
+            } else if (row.modifier === 'CREST') {
+              baseCall += ' (C)';
+            }
+          }
+
+          if (row.customExtra) {
+            baseCall += ` / ${row.customExtra}`;
+          }
+
+          let formattedCall = baseCall.replace(/^([RL]\d+)/, '<u>$1</u>');
+          const distDisplay = row.straightDist > 0 ? row.straightDist : '';
+
+          pageHtml += `
+            <div class="note-row">
+              <div class="note-call">${formattedCall}</div>
+              <div class="note-distance">${distDisplay}</div>
+            </div>
+          `;
+        });
+
+        pageDiv.innerHTML = pageHtml;
+        container.appendChild(pageDiv);
+      }
+    }
+  </script>
+</body>
+</html>
