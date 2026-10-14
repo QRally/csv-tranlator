@@ -87,7 +87,6 @@
       .workspace { grid-template-columns: 1fr 360px; }
     }
 
-    /* Compact Road Book Preview */
     .preview-container {
       background: #fff;
       color: #000;
@@ -151,7 +150,6 @@
       font-weight: 900;
     }
 
-    /* Sidebar Editor */
     .editor-sidebar {
       background: var(--panel-bg);
       border: 1px solid var(--border-color);
@@ -293,36 +291,26 @@
 
     function buildNotesFromRaw() {
       parsedNotes = [];
-      let pendingStraight = 0;
+      let lastStraightDist = 0;
 
       for (let i = 0; i < rawCsvRows.length; i++) {
         const current = rawCsvRows[i];
 
         if (current.type === 'STRAIGHT') {
-          pendingStraight = current.distVal;
+          lastStraightDist = current.distVal;
         } else {
-          // Look ahead for the trailing straight distance
-          let trailingStraight = 0;
-          for (let j = i + 1; j < rawCsvRows.length; j++) {
-            if (rawCsvRows[j].type === 'STRAIGHT') {
-              trailingStraight = rawCsvRows[j].distVal;
-              break;
-            } else {
-              break; // Stop if another corner comes first
-            }
-          }
-
+          // Corner row takes the preceding straight distance
           parsedNotes.push({
             rawIndex: i,
             type: current.type,
             noteCall: current.noteCall,
-            straightDist: trailingStraight,
-            leadingBannerDist: pendingStraight,
+            straightDist: lastStraightDist,
             modifier: current.modifier,
             customExtra: current.customExtra
           });
 
-          pendingStraight = 0;
+          // Reset after assigning
+          lastStraightDist = 0;
         }
       }
 
@@ -406,13 +394,12 @@
 
         const pageNotes = parsedNotes.slice(p * LINES_PER_PAGE, (p + 1) * LINES_PER_PAGE);
 
-        if (pageNotes[0] && pageNotes[0].leadingBannerDist > 0) {
-          pageHtml += `<div class="top-page-banner">AFTER ${pageNotes[0].leadingBannerDist}m →</div>`;
-        } else if (p > 0 && pageNotes[0] && pageNotes[0].straightDist > 0) {
+        // Render transition banner at the top of the page if there's a leading distance
+        if (pageNotes[0] && pageNotes[0].straightDist > 0) {
           pageHtml += `<div class="top-page-banner">AFTER ${pageNotes[0].straightDist}m →</div>`;
         }
 
-        pageNotes.forEach((row) => {
+        pageNotes.forEach((row, rowIdx) => {
           let baseCall = row.noteCall.replace(/\bLONG\b/g, 'LNG');
 
           if (row.modifier) {
@@ -436,12 +423,14 @@
           }
 
           let formattedCall = baseCall.replace(/^([RL]\d+)/, '<u>$1</u>');
-          const distDisplay = row.straightDist > 0 ? row.straightDist : '';
+          
+          // Display the straight distance on the row (omit top row's distance if shown in banner)
+          const showDist = (rowIdx === 0 && row.straightDist > 0) ? '' : (row.straightDist > 0 ? row.straightDist : '');
 
           pageHtml += `
             <div class="note-row">
               <div class="note-call">${formattedCall}</div>
-              <div class="note-distance">${distDisplay}</div>
+              <div class="note-distance">${showDist}</div>
             </div>
           `;
         });
