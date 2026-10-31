@@ -362,9 +362,9 @@
 
       <div class="calc-toggle">
         <label for="placement-select">DISTANCE COLUMN:</label>
-        <select id="placement-select" onchange="buildNotesFromRaw()">
-          <option value="to-next" selected>Distance to Next Corner</option>
-          <option value="before">Distance Leading In</option>
+        <select id="placement-select" onchange="buildNotesFromRaw(false)">
+          <option value="before" selected>Distance Leading In</option>
+          <option value="to-next">Distance to Next Corner</option>
         </select>
       </div>
     </div>
@@ -373,7 +373,55 @@
       <div class="paste-header">
         <label>Paste Recce CSV Data Below:</label>
       </div>
-      <textarea id="csv-paste-box" placeholder="Paste CSV rows here..." oninput="processInputCSV()"></textarea>
+      <textarea id="csv-paste-box" placeholder="Paste CSV rows here..." oninput="processInputCSV()">Index,Type,Note Call,Segment Length (m),Cumulative Distance (m),Radius (m),Deflection (deg)
+1,L,"L1 OPENS",12,12,22,40
+2,L,"SQUARE L TIGHTENS",26,56,12,76
+3,L,"L1 TIGHTENS",19,110,19,66
+4,R,"SQUARE R TIGHTENS",26,289,16,81
+5,R,"R3 TIGHTENS",25,326,57,30
+6,L,"L3",35,382,79,31
+7,R,"R2",29,523,38,32
+8,L,"L2",45,704,32,38
+9,L,"L1 TIGHTENS",17,741,19,51
+10,L,"L2 TIGHTENS",69,1371,37,71
+11,R,"R4",97,1617,138,31
+12,L,"L6",89,2334,332,14
+13,R,"R4 VERY LONG",121,2653,99,49
+14,R,"R6",102,2964,422,14
+15,L,"L3 VERY LONG",120,3133,68,56
+16,R,"R5",94,3319,195,22
+17,L,"L5",77,4073,192,19
+18,R,"R4",113,4227,137,31
+19,L,"L5",68,4324,193,17
+20,R,"R5",70,4407,195,20
+21,L,"L4",91,4529,143,28
+22,R,"R6",88,4682,309,13
+23,R,"R5",106,4959,151,32
+24,R,"R6",111,5158,361,17
+25,L,"L5",99,5271,163,22
+26,L,"L5",77,5391,190,17
+27,L,"L6",78,5514,302,12
+28,L,"L5",63,5656,232,15
+29,R,"R6",190,6036,659,6
+30,L,"L6",95,6431,595,6
+31,R,"R6",96,6718,540,8
+32,R,"R6",102,6951,541,8
+33,L,"L6",124,7270,393,12
+34,R,"R3 TIGHTENS",125,7825,69,29
+35,R,"R6",85,7968,454,9
+36,R,"R6",146,8200,402,15
+37,L,"L3",76,8377,67,43
+38,R,"R3",80,8647,84,25
+39,L,"L3 LONG",79,8760,61,43
+40,R,"R5",56,8852,158,23
+41,R,"R6",96,9034,409,14
+42,R,"R5",109,9402,172,23
+43,L,"L4",102,9588,138,34
+44,R,"R6",68,9688,308,14
+45,R,"HR TIGHTENS",59,9987,8,109
+46,R,"R3 TIGHTENS",55,10266,51,40
+47,L,"L4",33,10307,104,18
+48,L,"SQUARE L TIGHTENS",39,10429,8,83</textarea>
     </div>
   </header>
 
@@ -451,7 +499,7 @@
         }
       }
 
-      buildNotesFromRaw();
+      buildNotesFromRaw(true);
     }
 
     function roundDist(val, rule) {
@@ -461,7 +509,7 @@
       return Math.round(val);
     }
 
-    function buildNotesFromRaw() {
+    function buildNotesFromRaw(renderEditorList = true) {
       parsedNotes = [];
       const rounding = parseInt(document.getElementById('rounding-select').value, 10) || 10;
       const placement = document.getElementById('placement-select').value;
@@ -507,29 +555,41 @@
         });
       }
 
-      renderEditor();
+      if (renderEditorList) {
+        const sidebar = document.getElementById('editor-sidebar');
+        const savedScroll = sidebar ? sidebar.scrollTop : 0;
+        renderEditor();
+        if (sidebar && savedScroll > 0) {
+          sidebar.scrollTop = savedScroll;
+        }
+      }
       renderRoadbook();
     }
 
     function deleteRow(rawIdx) {
       rawCsvRows.splice(rawIdx, 1);
-      buildNotesFromRaw();
+      buildNotesFromRaw(true);
     }
 
     function updateManualDist(rawIdx, val) {
       const num = parseInt(val, 10);
-      rawCsvRows[rawIdx].manualDist = isNaN(num) ? 0 : num;
-      buildNotesFromRaw();
+      const distVal = isNaN(num) ? 0 : num;
+      if (rawCsvRows[rawIdx]) rawCsvRows[rawIdx].manualDist = distVal;
+      if (parsedNotes[rawIdx]) parsedNotes[rawIdx].straightDist = distVal;
+      renderRoadbook();
     }
 
     function updateModifier(rawIdx, val) {
-      rawCsvRows[rawIdx].modifier = val;
-      buildNotesFromRaw();
+      if (rawCsvRows[rawIdx]) rawCsvRows[rawIdx].modifier = val;
+      if (parsedNotes[rawIdx]) parsedNotes[rawIdx].modifier = val;
+      renderRoadbook();
     }
 
     function updateExtra(rawIdx, val) {
-      rawCsvRows[rawIdx].customExtra = val;
-      buildNotesFromRaw();
+      if (rawCsvRows[rawIdx]) rawCsvRows[rawIdx].customExtra = val;
+      if (parsedNotes[rawIdx]) parsedNotes[rawIdx].customExtra = val;
+      // Fluid update: re-renders roadbook without rebuilding editor DOM or dismissing keyboard
+      renderRoadbook();
     }
 
     function formatCallString(row) {
@@ -594,7 +654,7 @@
               <option value="CREST" ${row.modifier === 'CREST' ? 'selected' : ''}>(C)</option>
               <option value="DONT_CUT" ${row.modifier === 'DONT_CUT' ? 'selected' : ''}>DON'T CUT</option>
             </select>
-            <input type="text" placeholder="Extra..." value="${row.customExtra || ''}" oninput="updateExtra(${row.rawIndex}, this.value)">
+            <input type="text" placeholder="Extra..." value="${row.customExtra || ''}" autocomplete="off" autocorrect="off" spellcheck="false" oninput="updateExtra(${row.rawIndex}, this.value)">
           </div>
         `;
         sidebar.appendChild(item);
@@ -664,6 +724,13 @@
         pageDiv.innerHTML = pageHtml;
         container.appendChild(pageDiv);
       }
+    }
+
+    // Auto-initialize on load if CSV data is in textarea
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', processInputCSV);
+    } else {
+      processInputCSV();
     }
   </script>
 </body>
