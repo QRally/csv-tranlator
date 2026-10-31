@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pace Note Translator & Clipboard Export</title>
+  <title>Pace Note Translator & Roadbook Generator</title>
   <style>
     :root {
       --bg-color: #121216;
@@ -11,9 +11,10 @@
       --accent-blue: #29b6f6;
       --accent-green: #00e676;
       --accent-red: #ff5252;
+      --accent-yellow: #ffd600;
       --text-color: #f0f0f0;
       --border-color: #333340;
-      --font-mono: 'Courier New', Courier, monospace;
+      --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,18 +23,18 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
-      padding: 12px;
+      padding: 14px;
     }
 
     header {
       background: var(--panel-bg);
-      padding: 12px;
+      padding: 14px;
       border-radius: 10px;
       border: 1px solid var(--border-color);
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .header-top {
@@ -44,22 +45,35 @@
       flex-wrap: wrap;
     }
 
-    h1 { font-size: 1.1rem; color: #fff; letter-spacing: 0.5px; }
+    h1 { font-size: 1.15rem; color: #fff; letter-spacing: 0.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+    .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
     .btn {
       background: #252530;
       color: #fff;
       border: 1px solid var(--border-color);
-      padding: 6px 12px;
+      padding: 7px 14px;
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
       font-size: 0.8rem;
       text-transform: uppercase;
+      transition: all 0.15s ease;
     }
     .btn:hover { background: #323242; border-color: var(--accent-blue); }
-    .btn-primary { background: var(--accent-green); color: #000; border: none; }
+    .btn-primary { background: var(--accent-green); color: #000; border: none; font-weight: 800; }
     .btn-primary:hover { background: #00c853; }
+    .btn-secondary { background: #2c2d3a; color: var(--accent-blue); }
+
+    .controls-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding-top: 4px;
+      border-top: 1px solid var(--border-color);
+    }
 
     .stage-input-group {
       display: flex;
@@ -69,8 +83,7 @@
       border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 4px 8px;
-      flex: 1;
-      max-width: 320px;
+      min-width: 260px;
     }
 
     .stage-input-group label {
@@ -91,120 +104,171 @@
     }
     .stage-input-group input:focus { outline: none; }
 
+    .calc-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #ccc;
+      background: #141418;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 5px 10px;
+    }
+
+    .calc-toggle select {
+      background: #252530;
+      border: 1px solid var(--border-color);
+      color: var(--accent-green);
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
     .paste-section {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
+    }
+
+    .paste-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .paste-header label {
+      font-size: 0.7rem;
+      color: #aaa;
+      text-transform: uppercase;
+      font-weight: bold;
     }
 
     textarea {
       width: 100%;
-      height: 65px;
+      height: 95px;
       background: #141418;
       color: #fff;
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      padding: 6px;
+      padding: 8px;
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       resize: vertical;
     }
 
     .workspace {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px;
+      gap: 14px;
     }
 
-    @media (min-width: 900px) {
-      .workspace { grid-template-columns: 1fr 360px; }
+    @media (min-width: 960px) {
+      .workspace { grid-template-columns: 1fr 380px; }
     }
 
     .preview-container {
-      background: #fff;
+      background: #e5e7eb;
       color: #000;
-      padding: 15px;
+      padding: 16px;
       border-radius: 10px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-      min-height: 450px;
+      min-height: 480px;
     }
 
     .roadbook-page {
-      border: 2px solid #000;
-      padding: 10px;
+      border: 3px solid #000;
+      padding: 14px;
       background: #fff;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     }
 
     .page-header {
       display: flex;
       justify-content: space-between;
-      font-weight: bold;
-      font-size: 0.8rem;
-      border-bottom: 2px solid #000;
-      padding-bottom: 4px;
-      margin-bottom: 6px;
+      align-items: center;
+      font-weight: 900;
+      font-size: 0.85rem;
+      border-bottom: 3px solid #000;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .top-page-banner {
-      background: #fff9c4;
-      border: 1px solid #fbc02d;
-      padding: 6px 10px;
-      text-align: right;
-      font-weight: bold;
-      font-style: italic;
-      margin-bottom: 6px;
-      font-size: 0.85rem;
+    .page-header-tag {
+      background: #000;
+      color: #fff;
+      padding: 2px 6px;
+      font-size: 0.7rem;
+      border-radius: 2px;
     }
 
     .note-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 4px;
-      border-bottom: 1px solid #ccc;
+      padding: 9px 6px;
+      border-bottom: 1.5px solid #d1d5db;
       font-family: var(--font-mono);
     }
 
+    .note-row:last-child {
+      border-bottom: none;
+    }
+
     .note-call {
-      font-size: 1.15rem;
-      font-weight: bold;
+      font-size: 1.25rem;
+      font-weight: 800;
       letter-spacing: 0.5px;
     }
 
     .note-call u {
-      text-underline-offset: 3px;
-      text-decoration-thickness: 2px;
+      text-underline-offset: 4px;
+      text-decoration-thickness: 3px;
     }
 
     .note-distance {
-      font-size: 1.35rem;
+      font-size: 1.45rem;
       font-weight: 900;
+      color: #000;
+      min-width: 60px;
+      text-align: right;
+      letter-spacing: -0.5px;
     }
 
     .editor-sidebar {
       background: var(--panel-bg);
       border: 1px solid var(--border-color);
       border-radius: 10px;
-      padding: 12px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      max-height: 600px;
+      gap: 10px;
+      max-height: 650px;
       overflow-y: auto;
     }
 
-    .editor-header { font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: bold; }
+    .editor-header {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: #aaa;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
     .editor-item {
       background: #141418;
       border: 1px solid var(--border-color);
-      padding: 6px;
+      padding: 8px;
       border-radius: 6px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .editor-item-top {
@@ -213,7 +277,26 @@
       align-items: center;
       font-family: var(--font-mono);
       font-weight: bold;
+      font-size: 0.85rem;
+    }
+
+    .dist-editor {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .dist-input {
+      width: 65px;
+      background: #252530;
+      border: 1px solid var(--border-color);
+      color: var(--accent-green);
+      font-weight: 900;
+      font-family: var(--font-mono);
+      padding: 3px 6px;
+      border-radius: 4px;
       font-size: 0.8rem;
+      text-align: right;
     }
 
     .btn-delete {
@@ -221,7 +304,7 @@
       color: var(--accent-red);
       border: none;
       font-weight: bold;
-      font-size: 0.9rem;
+      font-size: 1rem;
       cursor: pointer;
       padding: 0 4px;
     }
@@ -229,17 +312,25 @@
 
     .modifier-inputs {
       display: flex;
-      gap: 4px;
+      gap: 6px;
     }
 
     select, input[type="text"] {
       background: #252530;
       color: #fff;
       border: 1px solid var(--border-color);
-      padding: 4px;
+      padding: 5px 8px;
       border-radius: 4px;
       font-size: 0.75rem;
       flex: 1;
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      header, .editor-sidebar, .controls-bar { display: none !important; }
+      .workspace { display: block !important; }
+      .preview-container { background: #fff; padding: 0; box-shadow: none; }
+      .roadbook-page { page-break-after: always; margin-bottom: 0; border: 3px solid #000; }
     }
   </style>
 </head>
@@ -247,29 +338,58 @@
 
   <header>
     <div class="header-top">
-      <h1>Pace Note Translator & Clipboard</h1>
+      <h1>Pace Note Translator & Roadbook</h1>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="window.print()">Print Roadbook</button>
+        <button class="btn btn-primary" onclick="copyNotesToClipboard()">Copy Notes</button>
+      </div>
+    </div>
+
+    <div class="controls-bar">
       <div class="stage-input-group">
         <label for="stage-name-input">STAGE:</label>
         <input type="text" id="stage-name-input" value="SS7 - GARTHENIOG" oninput="renderRoadbook()">
       </div>
-      <button class="btn btn-primary" onclick="copyNotesToClipboard()">Copy Notes</button>
+
+      <div class="calc-toggle">
+        <label for="rounding-select">ROUNDING:</label>
+        <select id="rounding-select" onchange="buildNotesFromRaw()">
+          <option value="10" selected>Nearest 10m (Standard)</option>
+          <option value="5">Nearest 5m</option>
+          <option value="1">Exact Meters</option>
+        </select>
+      </div>
+
+      <div class="calc-toggle">
+        <label for="placement-select">DISTANCE COLUMN:</label>
+        <select id="placement-select" onchange="buildNotesFromRaw()">
+          <option value="to-next" selected>Distance to Next Corner</option>
+          <option value="before">Distance Leading In</option>
+        </select>
+      </div>
     </div>
+
     <div class="paste-section">
-      <div style="font-size:0.7rem; color:#aaa; text-transform:uppercase;">Paste CSV Data Below:</div>
+      <div class="paste-header">
+        <label>Paste Recce CSV Data Below:</label>
+      </div>
       <textarea id="csv-paste-box" placeholder="Paste CSV rows here..." oninput="processInputCSV()"></textarea>
     </div>
   </header>
 
   <div class="workspace">
     <div class="preview-container" id="preview-container">
-      <div style="text-align:center; color:#666; padding:20px; font-family:sans-serif; font-size:0.85rem;">
+      <div style="text-align:center; color:#666; padding:20px; font-size:0.85rem;">
         Paste your recce CSV log above to generate formatted longhand notes.
       </div>
     </div>
 
     <div class="editor-sidebar" id="editor-sidebar">
-      <div class="editor-header">Stage Line Editor & Modifiers</div>
-      <div id="editor-list" style="display:flex; flex-direction:column; gap:6px;">
+      <div class="editor-header">
+        <span>Stage Line Editor & Modifiers</span>
+        <span id="note-count-badge" style="font-size:0.7rem; color:var(--accent-green);">0 Notes</span>
+      </div>
+      <div id="editor-list" style="display:flex; flex-direction:column; gap:8px;">
         <div style="color:#666; font-size:0.75rem; text-align:center; padding:10px;">No data loaded yet.</div>
       </div>
     </div>
@@ -282,7 +402,7 @@
     function processInputCSV() {
       const text = document.getElementById('csv-paste-box').value;
       const lines = text.split('\n').filter(l => l.trim() !== '');
-      
+
       if (lines.length === 0) {
         rawCsvRows = [];
         parsedNotes = [];
@@ -298,18 +418,35 @@
       }
 
       for (let i = startIndex; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-        if (cols.length >= 3) {
-          let type = cols[1] || '';
-          let noteCall = cols[2] || '';
-          let distVal = parseInt(noteCall) || parseInt(cols[3]) || 0;
+        const line = lines[i];
+        const cols = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let c = 0; c < line.length; c++) {
+          if (line[c] === '"') inQuotes = !inQuotes;
+          else if (line[c] === ',' && !inQuotes) { cols.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
+          else cur += line[c];
+        }
+        cols.push(cur.trim().replace(/^"|"$/g, ''));
+
+        if (cols.length >= 2) {
+          const type = (cols[1] || cols[0] || '').toUpperCase();
+          const noteCall = (cols[2] || cols[1] || cols[0] || '').toUpperCase();
+          const cornerLength = parseInt(cols[3], 10) || 0;
+          const cumDist = parseInt(cols[4], 10) || 0;
+          const radius = parseInt(cols[5], 10) || 0;
+          const angle = parseInt(cols[6], 10) || 0;
 
           rawCsvRows.push({
-            type: type.toUpperCase(),
-            noteCall: noteCall.toUpperCase(),
-            distVal: distVal,
+            type: type,
+            noteCall: noteCall,
+            cornerLength: cornerLength,
+            cumDist: cumDist,
+            radius: radius,
+            angle: angle,
             modifier: '',
-            customExtra: ''
+            customExtra: '',
+            manualDist: null
           });
         }
       }
@@ -317,27 +454,57 @@
       buildNotesFromRaw();
     }
 
+    function roundDist(val, rule) {
+      if (isNaN(val) || val <= 0) return 0;
+      if (rule === 10) return Math.round(val / 10) * 10;
+      if (rule === 5) return Math.round(val / 5) * 5;
+      return Math.round(val);
+    }
+
     function buildNotesFromRaw() {
       parsedNotes = [];
-      let lastStraightDist = 0;
+      const rounding = parseInt(document.getElementById('rounding-select').value, 10) || 10;
+      const placement = document.getElementById('placement-select').value;
 
       for (let i = 0; i < rawCsvRows.length; i++) {
         const current = rawCsvRows[i];
+        const next = rawCsvRows[i + 1];
+        const prev = rawCsvRows[i - 1];
 
-        if (current.type === 'STRAIGHT') {
-          lastStraightDist = current.distVal;
-        } else {
-          parsedNotes.push({
-            rawIndex: i,
-            type: current.type,
-            noteCall: current.noteCall,
-            straightDist: lastStraightDist,
-            modifier: current.modifier,
-            customExtra: current.customExtra
-          });
-
-          lastStraightDist = 0;
+        // Delta to next from cumulative list: next.cumDist - current.cumDist
+        let distToNext = 0;
+        if (next && next.cumDist !== undefined && current.cumDist !== undefined) {
+          distToNext = Math.max(0, next.cumDist - current.cumDist);
         }
+
+        // Delta from prev from cumulative list: current.cumDist - prev.cumDist
+        let distFromPrev = 0;
+        if (prev && prev.cumDist !== undefined && current.cumDist !== undefined) {
+          distFromPrev = Math.max(0, current.cumDist - prev.cumDist);
+        } else if (i === 0 && current.cumDist) {
+          distFromPrev = current.cumDist;
+        }
+
+        let chosenDist = 0;
+        if (current.manualDist !== null) {
+          chosenDist = current.manualDist;
+        } else if (placement === 'to-next') {
+          chosenDist = next ? roundDist(distToNext, rounding) : 0;
+        } else {
+          chosenDist = roundDist(distFromPrev, rounding);
+        }
+
+        parsedNotes.push({
+          rawIndex: i,
+          type: current.type,
+          noteCall: current.noteCall,
+          cornerLength: current.cornerLength,
+          cumDist: current.cumDist,
+          straightDist: chosenDist,
+          distToNext: roundDist(distToNext, rounding),
+          modifier: current.modifier,
+          customExtra: current.customExtra
+        });
       }
 
       renderEditor();
@@ -349,40 +516,10 @@
       buildNotesFromRaw();
     }
 
-    function renderEditor() {
-      const sidebar = document.getElementById('editor-list');
-      if (parsedNotes.length === 0) {
-        sidebar.innerHTML = `<div style="color:#666; font-size:0.75rem; text-align:center; padding:10px;">No data loaded yet.</div>`;
-        return;
-      }
-
-      sidebar.innerHTML = '';
-      parsedNotes.forEach((row, idx) => {
-        const item = document.createElement('div');
-        item.className = 'editor-item';
-        item.innerHTML = `
-          <div class="editor-item-top">
-            <span>#${idx + 1}: ${row.noteCall}</span>
-            <div>
-              <span style="font-weight:normal; color:#888; font-size:0.7rem; margin-right:8px;">Dist: ${row.straightDist ? row.straightDist + 'm' : '--'}</span>
-              <button class="btn-delete" title="Delete line" onclick="deleteRow(${row.rawIndex})">✕</button>
-            </div>
-          </div>
-          <div class="modifier-inputs">
-            <select onchange="updateModifier(${row.rawIndex}, this.value)">
-              <option value="">No Modifier</option>
-              <option value="LNG" ${row.modifier === 'LNG' ? 'selected' : ''}>LNG</option>
-              <option value="OPENS" ${row.modifier === 'OPENS' ? 'selected' : ''}>OPENS</option>
-              <option value="TIGHTENS" ${row.modifier === 'TIGHTENS' ? 'selected' : ''}>TIGHTENS</option>
-              <option value="BROW" ${row.modifier === 'BROW' ? 'selected' : ''}>BROW</option>
-              <option value="NARROW" ${row.modifier === 'NARROW' ? 'selected' : ''}>(N)</option>
-              <option value="CREST" ${row.modifier === 'CREST' ? 'selected' : ''}>(C)</option>
-            </select>
-            <input type="text" placeholder="Extra..." value="${row.customExtra}" oninput="updateExtra(${row.rawIndex}, this.value)">
-          </div>
-        `;
-        sidebar.appendChild(item);
-      });
+    function updateManualDist(rawIdx, val) {
+      const num = parseInt(val, 10);
+      rawCsvRows[rawIdx].manualDist = isNaN(num) ? 0 : num;
+      buildNotesFromRaw();
     }
 
     function updateModifier(rawIdx, val) {
@@ -403,7 +540,7 @@
           baseCall += ' LNG';
         } else if (row.modifier === 'OPENS') {
           baseCall += ' / OPENS';
-        } else if (row.modifier === 'TIGHTENS') {
+        } else if (row.modifier === 'TIGHTENS' && !baseCall.includes('TIGHTENS')) {
           baseCall += ' / TIGHTENS';
         } else if (row.modifier === 'BROW') {
           baseCall += ' / BROW';
@@ -411,13 +548,57 @@
           baseCall += ' (N)';
         } else if (row.modifier === 'CREST') {
           baseCall += ' (C)';
+        } else if (row.modifier === 'DONT_CUT') {
+          baseCall += " / DON'T CUT";
         }
       }
 
       if (row.customExtra) {
-        baseCall += ` / ${row.customExtra}`;
+        baseCall += ' / ' + row.customExtra;
       }
       return baseCall;
+    }
+
+    function renderEditor() {
+      const sidebar = document.getElementById('editor-list');
+      const badge = document.getElementById('note-count-badge');
+      badge.textContent = parsedNotes.length + ' Notes';
+
+      if (parsedNotes.length === 0) {
+        sidebar.innerHTML = '<div style="color:#666; font-size:0.75rem; text-align:center; padding:10px;">No data loaded yet.</div>';
+        return;
+      }
+
+      sidebar.innerHTML = '';
+      parsedNotes.forEach((row, idx) => {
+        const item = document.createElement('div');
+        item.className = 'editor-item';
+        item.innerHTML = `
+          <div class="editor-item-top">
+            <span>#${idx + 1}: ${row.noteCall}</span>
+            <div class="dist-editor">
+              <label style="font-size:0.7rem; color:#aaa;">Dist:</label>
+              <input type="number" class="dist-input" value="${row.straightDist || ''}" placeholder="--"
+                onchange="updateManualDist(${row.rawIndex}, this.value)">
+              <button class="btn-delete" title="Delete line" onclick="deleteRow(${row.rawIndex})">✕</button>
+            </div>
+          </div>
+          <div class="modifier-inputs">
+            <select onchange="updateModifier(${row.rawIndex}, this.value)">
+              <option value="">No Modifier</option>
+              <option value="LNG" ${row.modifier === 'LNG' ? 'selected' : ''}>LNG</option>
+              <option value="OPENS" ${row.modifier === 'OPENS' ? 'selected' : ''}>OPENS</option>
+              <option value="TIGHTENS" ${row.modifier === 'TIGHTENS' ? 'selected' : ''}>TIGHTENS</option>
+              <option value="BROW" ${row.modifier === 'BROW' ? 'selected' : ''}>BROW</option>
+              <option value="NARROW" ${row.modifier === 'NARROW' ? 'selected' : ''}>(N)</option>
+              <option value="CREST" ${row.modifier === 'CREST' ? 'selected' : ''}>(C)</option>
+              <option value="DONT_CUT" ${row.modifier === 'DONT_CUT' ? 'selected' : ''}>DON'T CUT</option>
+            </select>
+            <input type="text" placeholder="Extra..." value="${row.customExtra || ''}" oninput="updateExtra(${row.rawIndex}, this.value)">
+          </div>
+        `;
+        sidebar.appendChild(item);
+      });
     }
 
     function copyNotesToClipboard() {
@@ -428,11 +609,11 @@
 
       const stageTitle = document.getElementById('stage-name-input').value.trim() || "STAGE 1";
       let outputText = stageTitle + "\n";
-      
-      parsedNotes.forEach((row, idx) => {
+
+      parsedNotes.forEach((row) => {
         let callStr = formatCallString(row);
-        let distStr = (idx === 0 && row.straightDist > 0) ? `${row.straightDist} ` : (row.straightDist > 0 ? `${row.straightDist} ` : "");
-        outputText += `${distStr}${callStr}\n`;
+        let distStr = row.straightDist > 0 ? ` ${row.straightDist}` : "";
+        outputText += `${callStr}${distStr}\n`;
       });
 
       navigator.clipboard.writeText(outputText).then(() => {
@@ -445,12 +626,11 @@
     function renderRoadbook() {
       const container = document.getElementById('preview-container');
       if (parsedNotes.length === 0) {
-        container.innerHTML = `<div style="text-align:center; color:#666; padding:20px; font-size:0.85rem;">Paste your recce CSV log above to generate formatted longhand notes.</div>`;
+        container.innerHTML = '<div style="text-align:center; color:#666; padding:20px; font-size:0.85rem;">Paste your recce CSV log above to generate formatted longhand notes.</div>';
         return;
       }
 
       container.innerHTML = '';
-
       const stageTitle = document.getElementById('stage-name-input').value.trim() || "STAGE 1";
       const LINES_PER_PAGE = 7;
       let totalPages = Math.ceil(parsedNotes.length / LINES_PER_PAGE);
@@ -462,20 +642,16 @@
         let pageHtml = `
           <div class="page-header">
             <span>STAGE: ${stageTitle}</span>
-            <span>PAGE: ${p + 1}</span>
+            <span class="page-header-tag">PAGE: ${p + 1} OF ${totalPages}</span>
           </div>
         `;
 
         const pageNotes = parsedNotes.slice(p * LINES_PER_PAGE, (p + 1) * LINES_PER_PAGE);
 
-        if (pageNotes[0] && pageNotes[0].straightDist > 0) {
-          pageHtml += `<div class="top-page-banner">AFTER ${pageNotes[0].straightDist}m →</div>`;
-        }
-
-        pageNotes.forEach((row, rowIdx) => {
+        pageNotes.forEach((row) => {
           let baseCall = formatCallString(row);
-          let formattedCall = baseCall.replace(/^([RL]\d+)/, '<u>$1</u>');
-          const showDist = (rowIdx === 0 && row.straightDist > 0) ? '' : (row.straightDist > 0 ? row.straightDist : '');
+          let formattedCall = baseCall.replace(/^([RL]\d+|HR|HL|SQUARE\s+[RL]|FLAT\s+[RL])/, '<u>$1</u>');
+          const showDist = row.straightDist > 0 ? row.straightDist : '';
 
           pageHtml += `
             <div class="note-row">
