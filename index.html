@@ -447,6 +447,15 @@
     let rawCsvRows = [];
     let parsedNotes = [];
 
+    function isStraightRow(type, call) {
+      const t = (type || '').trim().toUpperCase();
+      const c = (call || '').trim().toUpperCase();
+      if (t === 'STRAIGHT' || t === 'STR') return true;
+      if (c === 'STRAIGHT' || c === 'STR') return true;
+      if (/^\d+\s*M?$/i.test(c)) return true;
+      return false;
+    }
+
     function processInputCSV() {
       const text = document.getElementById('csv-paste-box').value;
       const lines = text.split('\n').filter(l => l.trim() !== '');
@@ -478,12 +487,37 @@
         cols.push(cur.trim().replace(/^"|"$/g, ''));
 
         if (cols.length >= 2) {
-          const type = (cols[1] || cols[0] || '').toUpperCase();
-          const noteCall = (cols[2] || cols[1] || cols[0] || '').toUpperCase();
+          const col0Upper = (cols[0] || '').trim().toUpperCase();
+          let type = (cols[1] || cols[0] || '').trim().toUpperCase();
+          let noteCall = (cols[2] || cols[1] || cols[0] || '').trim().toUpperCase();
           const cornerLength = parseInt(cols[3], 10) || 0;
           const cumDist = parseInt(cols[4], 10) || 0;
           const radius = parseInt(cols[5], 10) || 0;
           const angle = parseInt(cols[6], 10) || 0;
+
+          // Check if this row is a straight interval rather than a corner
+          if (
+            col0Upper === 'STRAIGHT' ||
+            type === 'STRAIGHT' ||
+            type === 'STR' ||
+            noteCall === 'STRAIGHT' ||
+            isStraightRow(type, noteCall)
+          ) {
+            const straightNum = parseInt(noteCall, 10) || parseInt(cols[3], 10) || parseInt(cols[1], 10) || 0;
+            rawCsvRows.push({
+              type: 'STRAIGHT',
+              noteCall: 'STRAIGHT',
+              straightLength: straightNum || cornerLength,
+              cornerLength: cornerLength,
+              cumDist: cumDist,
+              radius: 0,
+              angle: 0,
+              modifier: '',
+              customExtra: '',
+              manualDist: null
+            });
+            continue;
+          }
 
           rawCsvRows.push({
             type: type,
@@ -514,23 +548,47 @@
       const rounding = parseInt(document.getElementById('rounding-select').value, 10) || 10;
       const placement = document.getElementById('placement-select').value;
 
-      for (let i = 0; i < rawCsvRows.length; i++) {
-        const current = rawCsvRows[i];
-        const next = rawCsvRows[i + 1];
-        const prev = rawCsvRows[i - 1];
+      // Filter out all straight rows so ONLY genuine rally corners become notes!
+      const cornerIndices = [];
+      for (let r = 0; r < rawCsvRows.length; r++) {
+        if (!isStraightRow(rawCsvRows[r].type, rawCsvRows[r].noteCall)) {
+          cornerIndices.push(r);
+        }
+      }
 
-        // Delta to next from cumulative list: next.cumDist - current.cumDist
+      for (let i = 0; i < cornerIndices.length; i++) {
+        const rawIdx = cornerIndices[i];
+        const nextRawIdx = cornerIndices[i + 1];
+        const prevRawIdx = cornerIndices[i - 1];
+
+        const current = rawCsvRows[rawIdx];
+        const next = nextRawIdx !== undefined ? rawCsvRows[nextRawIdx] : null;
+        const prev = prevRawIdx !== undefined ? rawCsvRows[prevRawIdx] : null;
+
+        // 1. Calculate distance to next corner
         let distToNext = 0;
-        if (next && next.cumDist !== undefined && current.cumDist !== undefined) {
-          distToNext = Math.max(0, next.cumDist - current.cumDist);
+        if (next && next.cumDist > 0 && current.cumDist > 0 && next.cumDist >= current.cumDist) {
+          distToNext = next.cumDist - current.cumDist;
+        } else if (next) {
+          let straightSum = 0;
+          for (let s = rawIdx + 1; s < nextRawIdx; s++) {
+            straightSum += rawCsvRows[s].straightLength || rawCsvRows[s].cornerLength || 0;
+          }
+          distToNext = straightSum;
         }
 
-        // Delta from prev from cumulative list: current.cumDist - prev.cumDist
+        // 2. Calculate distance from previous corner
         let distFromPrev = 0;
-        if (prev && prev.cumDist !== undefined && current.cumDist !== undefined) {
-          distFromPrev = Math.max(0, current.cumDist - prev.cumDist);
-        } else if (i === 0 && current.cumDist) {
+        if (prev && prev.cumDist > 0 && current.cumDist > 0 && current.cumDist >= prev.cumDist) {
+          distFromPrev = current.cumDist - prev.cumDist;
+        } else if (i === 0 && current.cumDist > 0) {
           distFromPrev = current.cumDist;
+        } else if (prev) {
+          let straightSum = 0;
+          for (let s = prevRawIdx + 1; s < rawIdx; s++) {
+            straightSum += rawCsvRows[s].straightLength || rawCsvRows[s].cornerLength || 0;
+          }
+          distFromPrev = straightSum;
         }
 
         let chosenDist = 0;
@@ -543,13 +601,15 @@
         }
 
         parsedNotes.push({
-          rawIndex: i,
+          rawIndex: rawIdx,
+          cornerIndex: i,
           type: current.type,
           noteCall: current.noteCall,
           cornerLength: current.cornerLength,
           cumDist: current.cumDist,
           straightDist: chosenDist,
           distToNext: roundDist(distToNext, rounding),
+          distFromPrev: roundDist(distFromPrev, rounding),
           modifier: current.modifier,
           customExtra: current.customExtra
         });
@@ -575,19 +635,22 @@
       const num = parseInt(val, 10);
       const distVal = isNaN(num) ? 0 : num;
       if (rawCsvRows[rawIdx]) rawCsvRows[rawIdx].manualDist = distVal;
-      if (parsedNotes[rawIdx]) parsedNotes[rawIdx].straightDist = distVal;
+      const note = parsedNotes.find(n => n.rawIndex === rawIdx);
+      if (note) note.straightDist = distVal;
       renderRoadbook();
     }
 
     function updateModifier(rawIdx, val) {
       if (rawCsvRows[rawIdx]) rawCsvRows[rawIdx].modifier = val;
-      if (parsedNotes[rawIdx]) parsedNotes[rawIdx].modifier = val;
+      const note = parsedNotes.find(n => n.rawIndex === rawIdx);
+      if (note) note.modifier = val;
       renderRoadbook();
     }
 
     function updateExtra(rawIdx, val) {
       if (rawCsvRows[rawIdx]) rawCsvRows[rawIdx].customExtra = val;
-      if (parsedNotes[rawIdx]) parsedNotes[rawIdx].customExtra = val;
+      const note = parsedNotes.find(n => n.rawIndex === rawIdx);
+      if (note) note.customExtra = val;
       // Fluid update: re-renders roadbook without rebuilding editor DOM or dismissing keyboard
       renderRoadbook();
     }
