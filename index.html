@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pace Note Translator & Roadbook Generator</title>
+  <title>Pace Note Translator &amp; Roadbook Generator</title>
   <style>
     :root {
       --bg-color: #121216;
@@ -11,7 +11,6 @@
       --accent-blue: #29b6f6;
       --accent-green: #00e676;
       --accent-red: #ff5252;
-      --accent-yellow: #ffd600;
       --text-color: #f0f0f0;
       --border-color: #333340;
       --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
@@ -45,9 +44,19 @@
       flex-wrap: wrap;
     }
 
-    h1 { font-size: 1.15rem; color: #fff; letter-spacing: 0.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    h1 {
+      font-size: 1.15rem;
+      color: #fff;
+      letter-spacing: 0.4px;
+      font-weight: 700;
+    }
 
-    .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
     .btn {
       background: #252530;
@@ -60,6 +69,7 @@
       font-size: 0.8rem;
       text-transform: uppercase;
       transition: all 0.15s ease;
+      white-space: nowrap;
     }
     .btn:hover { background: #323242; border-color: var(--accent-blue); }
     .btn-primary { background: var(--accent-green); color: #000; border: none; font-weight: 800; }
@@ -71,7 +81,7 @@
       gap: 10px;
       flex-wrap: wrap;
       align-items: center;
-      padding-top: 4px;
+      padding-top: 8px;
       border-top: 1px solid var(--border-color);
     }
 
@@ -83,7 +93,7 @@
       border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 4px 8px;
-      min-width: 260px;
+      min-width: 240px;
     }
 
     .stage-input-group label {
@@ -162,6 +172,7 @@
       display: grid;
       grid-template-columns: 1fr;
       gap: 14px;
+      align-items: start;
     }
 
     @media (min-width: 960px) {
@@ -175,68 +186,97 @@
       border-radius: 10px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.5);
       min-height: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
     }
 
+    /* Full-page A4 WYSIWYG Roadbook Sheet */
     .roadbook-page {
+      width: 100%;
+      max-width: 780px;
+      aspect-ratio: 210 / 297;
       border: 3px solid #000;
-      padding: 14px;
+      padding: clamp(12px, 3.2cqw, 28px);
       background: #fff;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      display: flex;
+      flex-direction: column;
+      container-type: inline-size;
     }
 
     .page-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
       font-weight: 900;
-      font-size: 0.85rem;
+      font-size: clamp(12px, 2.7cqw, 20px);
       border-bottom: 3px solid #000;
-      padding-bottom: 6px;
-      margin-bottom: 8px;
+      padding-bottom: clamp(6px, 1.4cqw, 12px);
+      margin-bottom: clamp(4px, 0.8cqw, 8px);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      flex-shrink: 0;
     }
 
     .page-header-tag {
       background: #000;
       color: #fff;
-      padding: 2px 6px;
-      font-size: 0.7rem;
-      border-radius: 2px;
+      padding: clamp(2px, 0.5cqw, 5px) clamp(6px, 1.2cqw, 11px);
+      font-size: clamp(10px, 2.1cqw, 15px);
+      font-weight: 800;
+      border-radius: 3px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .roadbook-rows {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: repeat(var(--lines-per-page, 7), minmax(0, 1fr));
     }
 
     .note-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 9px 6px;
+      gap: clamp(8px, 2cqw, 20px);
+      padding: 0 clamp(4px, 1cqw, 10px);
       border-bottom: 1.5px solid #d1d5db;
       font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
     }
 
-    .note-row:last-child {
+    .note-row.is-last-slot {
       border-bottom: none;
     }
 
     .note-call {
-      font-size: 1.25rem;
+      font-size: clamp(16px, 4.1cqw, 30px);
       font-weight: 800;
       letter-spacing: 0.5px;
+      line-height: 1.15;
+      color: #000;
+      word-break: break-word;
     }
 
     .note-call u {
-      text-underline-offset: 4px;
+      text-underline-offset: 0.22em;
       text-decoration-thickness: 3px;
     }
 
     .note-distance {
-      font-size: 1.45rem;
+      font-size: clamp(20px, 5cqw, 36px);
       font-weight: 900;
       color: #000;
-      min-width: 60px;
+      min-width: clamp(48px, 11cqw, 86px);
       text-align: right;
       letter-spacing: -0.5px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .editor-sidebar {
@@ -325,12 +365,113 @@
       flex: 1;
     }
 
+    @page {
+      margin: 8mm;
+    }
+
     @media print {
-      body { background: #fff; padding: 0; }
-      header, .editor-sidebar, .controls-bar { display: none !important; }
-      .workspace { display: block !important; }
-      .preview-container { background: #fff; padding: 0; box-shadow: none; }
-      .roadbook-page { page-break-after: always; margin-bottom: 0; border: 3px solid #000; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        box-sizing: border-box !important;
+      }
+
+      html, body {
+        background: #fff !important;
+        color: #000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+
+      header, .editor-sidebar, .controls-bar {
+        display: none !important;
+      }
+
+      .workspace {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .preview-container {
+        display: block !important;
+        background: #fff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        min-height: 0 !important;
+        width: 100% !important;
+      }
+
+      .roadbook-page {
+        container-type: normal !important;
+        width: 100% !important;
+        max-width: none !important;
+        aspect-ratio: auto !important;
+        height: 248mm !important;
+        min-height: 0 !important;
+        max-height: 248mm !important;
+        margin: 0 !important;
+        padding: 7mm 8mm !important;
+        border: 3px solid #000 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        display: flex !important;
+        flex-direction: column !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        break-after: page !important;
+        page-break-after: always !important;
+        overflow: hidden !important;
+      }
+
+      .roadbook-page:last-child {
+        break-after: auto !important;
+        page-break-after: auto !important;
+      }
+
+      .page-header {
+        font-size: 15pt !important;
+        padding-bottom: 3.5mm !important;
+        margin-bottom: 1.5mm !important;
+        border-bottom: 3px solid #000 !important;
+      }
+
+      .page-header-tag {
+        background: #000 !important;
+        color: #fff !important;
+        font-size: 12pt !important;
+        padding: 1.5mm 3.5mm !important;
+        border-radius: 3px !important;
+      }
+
+      .note-row {
+        padding: 0 2mm !important;
+        border-bottom: 1.5pt solid #d1d5db !important;
+      }
+
+      .note-row.is-last-slot {
+        border-bottom: none !important;
+      }
+
+      .note-call {
+        font-size: 24pt !important;
+      }
+
+      .note-call u {
+        text-underline-offset: 0.22em !important;
+        text-decoration-thickness: 2.5pt !important;
+      }
+
+      .note-distance {
+        font-size: 30pt !important;
+        min-width: 28mm !important;
+      }
     }
   </style>
 </head>
@@ -338,10 +479,10 @@
 
   <header>
     <div class="header-top">
-      <h1>Pace Note Translator & Roadbook</h1>
+      <h1>Pace Note Translator &amp; Roadbook</h1>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="window.print()">Print Roadbook</button>
-        <button class="btn btn-primary" onclick="copyNotesToClipboard()">Copy Notes</button>
+        <button class="btn btn-primary" id="copy-notes-btn" onclick="copyNotesToClipboard()">Copy Notes</button>
       </div>
     </div>
 
@@ -371,7 +512,7 @@
 
     <div class="paste-section">
       <div class="paste-header">
-        <label>Paste Recce CSV Data Below:</label>
+        <label for="csv-paste-box">Paste Recce CSV Data Below:</label>
       </div>
       <textarea id="csv-paste-box" placeholder="Paste CSV rows here..." oninput="processInputCSV()">Index,Type,Note Call,Segment Length (m),Cumulative Distance (m),Radius (m),Deflection (deg)
 1,L,"L1 OPENS",12,12,22,40
@@ -434,7 +575,7 @@
 
     <div class="editor-sidebar" id="editor-sidebar">
       <div class="editor-header">
-        <span>Stage Line Editor & Modifiers</span>
+        <span>Stage Line Editor &amp; Modifiers</span>
         <span id="note-count-badge" style="font-size:0.7rem; color:var(--accent-green);">0 Notes</span>
       </div>
       <div id="editor-list" style="display:flex; flex-direction:column; gap:8px;">
@@ -446,6 +587,7 @@
   <script>
     let rawCsvRows = [];
     let parsedNotes = [];
+    const LINES_PER_PAGE = 7;
 
     function isStraightRow(type, call) {
       const t = (type || '').trim().toUpperCase();
@@ -495,7 +637,6 @@
           const radius = parseInt(cols[5], 10) || 0;
           const angle = parseInt(cols[6], 10) || 0;
 
-          // Check if this row is a straight interval rather than a corner
           if (
             col0Upper === 'STRAIGHT' ||
             type === 'STRAIGHT' ||
@@ -548,7 +689,6 @@
       const rounding = parseInt(document.getElementById('rounding-select').value, 10) || 10;
       const placement = document.getElementById('placement-select').value;
 
-      // Filter out all straight rows so ONLY genuine rally corners become notes!
       const cornerIndices = [];
       for (let r = 0; r < rawCsvRows.length; r++) {
         if (!isStraightRow(rawCsvRows[r].type, rawCsvRows[r].noteCall)) {
@@ -565,7 +705,6 @@
         const next = nextRawIdx !== undefined ? rawCsvRows[nextRawIdx] : null;
         const prev = prevRawIdx !== undefined ? rawCsvRows[prevRawIdx] : null;
 
-        // 1. Calculate distance to next corner
         let distToNext = 0;
         if (next && next.cumDist > 0 && current.cumDist > 0 && next.cumDist >= current.cumDist) {
           distToNext = next.cumDist - current.cumDist;
@@ -577,7 +716,6 @@
           distToNext = straightSum;
         }
 
-        // 2. Calculate distance from previous corner
         let distFromPrev = 0;
         if (prev && prev.cumDist > 0 && current.cumDist > 0 && current.cumDist >= prev.cumDist) {
           distFromPrev = current.cumDist - prev.cumDist;
@@ -632,12 +770,11 @@
     }
 
     function updateManualDist(rawIdx, val) {
-      const num = parseInt(val, 10);
-      const distVal = isNaN(num) ? 0 : num;
+      const trimmed = String(val).trim();
+      const num = parseInt(trimmed, 10);
+      const distVal = trimmed === '' || isNaN(num) ? null : Math.max(0, num);
       if (rawCsvRows[rawIdx]) rawCsvRows[rawIdx].manualDist = distVal;
-      const note = parsedNotes.find(n => n.rawIndex === rawIdx);
-      if (note) note.straightDist = distVal;
-      renderRoadbook();
+      buildNotesFromRaw(false);
     }
 
     function updateModifier(rawIdx, val) {
@@ -651,7 +788,6 @@
       if (rawCsvRows[rawIdx]) rawCsvRows[rawIdx].customExtra = val;
       const note = parsedNotes.find(n => n.rawIndex === rawIdx);
       if (note) note.customExtra = val;
-      // Fluid update: re-renders roadbook without rebuilding editor DOM or dismissing keyboard
       renderRoadbook();
     }
 
@@ -682,6 +818,14 @@
       return baseCall;
     }
 
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
     function renderEditor() {
       const sidebar = document.getElementById('editor-list');
       const badge = document.getElementById('note-count-badge');
@@ -698,11 +842,11 @@
         item.className = 'editor-item';
         item.innerHTML = `
           <div class="editor-item-top">
-            <span>#${idx + 1}: ${row.noteCall}</span>
+            <span>#${idx + 1}: ${escapeHtml(row.noteCall)}</span>
             <div class="dist-editor">
               <label style="font-size:0.7rem; color:#aaa;">Dist:</label>
               <input type="number" class="dist-input" value="${row.straightDist || ''}" placeholder="--"
-                onchange="updateManualDist(${row.rawIndex}, this.value)">
+                oninput="updateManualDist(${row.rawIndex}, this.value)">
               <button class="btn-delete" title="Delete line" onclick="deleteRow(${row.rawIndex})">✕</button>
             </div>
           </div>
@@ -717,7 +861,7 @@
               <option value="CREST" ${row.modifier === 'CREST' ? 'selected' : ''}>(C)</option>
               <option value="DONT_CUT" ${row.modifier === 'DONT_CUT' ? 'selected' : ''}>DON'T CUT</option>
             </select>
-            <input type="text" placeholder="Extra..." value="${row.customExtra || ''}" autocomplete="off" autocorrect="off" spellcheck="false" oninput="updateExtra(${row.rawIndex}, this.value)">
+            <input type="text" placeholder="Extra..." value="${escapeHtml(row.customExtra || '')}" autocomplete="off" autocorrect="off" spellcheck="false" oninput="updateExtra(${row.rawIndex}, this.value)">
           </div>
         `;
         sidebar.appendChild(item);
@@ -725,22 +869,22 @@
     }
 
     function copyNotesToClipboard() {
-      if (parsedNotes.length === 0) {
-        alert("No notes loaded to copy!");
-        return;
-      }
+      const btn = document.getElementById('copy-notes-btn');
+      if (parsedNotes.length === 0) return;
 
       const stageTitle = document.getElementById('stage-name-input').value.trim() || "STAGE 1";
       let outputText = stageTitle + "\n";
 
       parsedNotes.forEach((row) => {
-        let callStr = formatCallString(row);
-        let distStr = row.straightDist > 0 ? ` ${row.straightDist}` : "";
+        const callStr = formatCallString(row);
+        const distStr = row.straightDist > 0 ? ` ${row.straightDist}` : "";
         outputText += `${callStr}${distStr}\n`;
       });
 
       navigator.clipboard.writeText(outputText).then(() => {
-        alert(`Stage notes for "${stageTitle}" copied to clipboard!`);
+        const prev = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = prev; }, 2000);
       }).catch(err => {
         console.error("Failed to copy notes: ", err);
       });
@@ -755,41 +899,44 @@
 
       container.innerHTML = '';
       const stageTitle = document.getElementById('stage-name-input').value.trim() || "STAGE 1";
-      const LINES_PER_PAGE = 7;
-      let totalPages = Math.ceil(parsedNotes.length / LINES_PER_PAGE);
+      const totalPages = Math.ceil(parsedNotes.length / LINES_PER_PAGE);
 
       for (let p = 0; p < totalPages; p++) {
         const pageDiv = document.createElement('div');
         pageDiv.className = 'roadbook-page';
-
-        let pageHtml = `
-          <div class="page-header">
-            <span>STAGE: ${stageTitle}</span>
-            <span class="page-header-tag">PAGE: ${p + 1} OF ${totalPages}</span>
-          </div>
-        `;
+        pageDiv.style.setProperty('--lines-per-page', LINES_PER_PAGE);
 
         const pageNotes = parsedNotes.slice(p * LINES_PER_PAGE, (p + 1) * LINES_PER_PAGE);
 
-        pageNotes.forEach((row) => {
-          let baseCall = formatCallString(row);
-          let formattedCall = baseCall.replace(/^([RL]\d+|HR|HL|SQUARE\s+[RL]|FLAT\s+[RL])/, '<u>$1</u>');
+        let rowsHtml = '';
+        pageNotes.forEach((row, rowIdx) => {
+          const baseCall = escapeHtml(formatCallString(row));
+          const formattedCall = baseCall.replace(/^([RL]\d+|HR|HL|SQUARE\s+[RL]|FLAT\s+[RL])/, '<u>$1</u>');
           const showDist = row.straightDist > 0 ? row.straightDist : '';
+          const lastClass = rowIdx === LINES_PER_PAGE - 1 ? ' is-last-slot' : '';
 
-          pageHtml += `
-            <div class="note-row">
+          rowsHtml += `
+            <div class="note-row${lastClass}">
               <div class="note-call">${formattedCall}</div>
               <div class="note-distance">${showDist}</div>
             </div>
           `;
         });
 
-        pageDiv.innerHTML = pageHtml;
+        pageDiv.innerHTML = `
+          <div class="page-header">
+            <span>STAGE: ${escapeHtml(stageTitle)}</span>
+            <span class="page-header-tag">PAGE: ${p + 1} OF ${totalPages}</span>
+          </div>
+          <div class="roadbook-rows">
+            ${rowsHtml}
+          </div>
+        `;
+
         container.appendChild(pageDiv);
       }
     }
 
-    // Auto-initialize on load if CSV data is in textarea
     if (document.readyState === 'loading') {
       window.addEventListener('DOMContentLoaded', processInputCSV);
     } else {
