@@ -254,8 +254,18 @@
       border-bottom: none;
     }
 
+    .roadbook-page[data-font-size="small"] {
+      --font-scale: 0.82;
+    }
+    .roadbook-page[data-font-size="medium"] {
+      --font-scale: 1;
+    }
+    .roadbook-page[data-font-size="large"] {
+      --font-scale: 1.18;
+    }
+
     .note-call {
-      font-size: clamp(16px, 4.1cqw, 30px);
+      font-size: calc(clamp(16px, 4.1cqw, 30px) * var(--font-scale, 1));
       font-weight: 800;
       letter-spacing: 0.5px;
       line-height: 1.15;
@@ -269,10 +279,10 @@
     }
 
     .note-distance {
-      font-size: clamp(20px, 5cqw, 36px);
+      font-size: calc(clamp(20px, 5cqw, 36px) * var(--font-scale, 1));
       font-weight: 900;
       color: #000;
-      min-width: clamp(48px, 11cqw, 86px);
+      min-width: calc(clamp(48px, 11cqw, 86px) * var(--font-scale, 1));
       text-align: right;
       letter-spacing: -0.5px;
       white-space: nowrap;
@@ -460,7 +470,7 @@
       }
 
       .note-call {
-        font-size: 24pt !important;
+        font-size: calc(24pt * var(--font-scale, 1)) !important;
       }
 
       .note-call u {
@@ -469,8 +479,8 @@
       }
 
       .note-distance {
-        font-size: 30pt !important;
-        min-width: 28mm !important;
+        font-size: calc(30pt * var(--font-scale, 1)) !important;
+        min-width: calc(28mm * var(--font-scale, 1)) !important;
       }
     }
   </style>
@@ -506,6 +516,15 @@
         <select id="placement-select" onchange="buildNotesFromRaw(false)">
           <option value="before" selected>Distance Leading In</option>
           <option value="to-next">Distance to Next Corner</option>
+        </select>
+      </div>
+
+      <div class="calc-toggle">
+        <label for="font-size-select">FONT SIZE:</label>
+        <select id="font-size-select" onchange="renderRoadbook()">
+          <option value="small" >Small</option>
+          <option value="medium" selected>Medium</option>
+          <option value="large" >Large</option>
         </select>
       </div>
 
@@ -906,11 +925,14 @@
       const stageTitle = document.getElementById('stage-name-input').value.trim() || "STAGE 1";
       const pageNumbersEl = document.getElementById('show-page-numbers-checkbox');
       const showPageNumbers = pageNumbersEl ? pageNumbersEl.checked : true;
+      const fontSizeEl = document.getElementById('font-size-select');
+      const fontSize = fontSizeEl ? fontSizeEl.value : 'medium';
       const totalPages = Math.ceil(parsedNotes.length / LINES_PER_PAGE);
 
       for (let p = 0; p < totalPages; p++) {
         const pageDiv = document.createElement('div');
         pageDiv.className = 'roadbook-page';
+        pageDiv.setAttribute('data-font-size', fontSize);
         pageDiv.style.setProperty('--lines-per-page', LINES_PER_PAGE);
 
         const pageNotes = parsedNotes.slice(p * LINES_PER_PAGE, (p + 1) * LINES_PER_PAGE);
