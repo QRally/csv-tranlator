@@ -508,6 +508,11 @@
           <option value="to-next">Distance to Next Corner</option>
         </select>
       </div>
+
+      <label class="calc-toggle" for="show-page-numbers-checkbox" style="cursor:pointer; user-select:none;">
+        <input type="checkbox" id="show-page-numbers-checkbox" checked onchange="renderRoadbook()" style="accent-color:#00e676; width:14px; height:14px; cursor:pointer;">
+        <span>PAGE NUMBERS</span>
+      </label>
     </div>
 
     <div class="paste-section">
@@ -899,6 +904,8 @@
 
       container.innerHTML = '';
       const stageTitle = document.getElementById('stage-name-input').value.trim() || "STAGE 1";
+      const pageNumbersEl = document.getElementById('show-page-numbers-checkbox');
+      const showPageNumbers = pageNumbersEl ? pageNumbersEl.checked : true;
       const totalPages = Math.ceil(parsedNotes.length / LINES_PER_PAGE);
 
       for (let p = 0; p < totalPages; p++) {
@@ -923,10 +930,14 @@
           `;
         });
 
+        const pageTagHtml = showPageNumbers
+          ? `<span class="page-header-tag">PAGE: ${p + 1} OF ${totalPages}</span>`
+          : '';
+
         pageDiv.innerHTML = `
           <div class="page-header">
             <span>STAGE: ${escapeHtml(stageTitle)}</span>
-            <span class="page-header-tag">PAGE: ${p + 1} OF ${totalPages}</span>
+            ${pageTagHtml}
           </div>
           <div class="roadbook-rows">
             ${rowsHtml}
